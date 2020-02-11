@@ -1,4 +1,4 @@
-module github.com/storezhang/gos
+module github.com/storezhang/echo
 
 go 1.12
 
