@@ -1,4 +1,4 @@
-package middleware
+package echos
 
 import (
     "strings"
@@ -10,7 +10,7 @@ import (
 )
 
 type (
-    Config struct {
+    JWTCasbinConfig struct {
         Skipper    middleware.Skipper
         Enforcer   *casbin.Enforcer
         DataSource DataSource
@@ -18,7 +18,7 @@ type (
 )
 
 var (
-    DefaultConfig = Config{
+    DefaultJWTCasbinConfig = JWTCasbinConfig{
         Skipper: middleware.DefaultSkipper,
     }
 )
@@ -27,17 +27,17 @@ type DataSource interface {
     GetUsernameByToken(token string) string
 }
 
-func JWTMiddleware(e *casbin.Enforcer, ds DataSource) echo.MiddlewareFunc {
-    c := DefaultConfig
+func JWTCasbinMiddleware(e *casbin.Enforcer, ds DataSource) echo.MiddlewareFunc {
+    c := DefaultJWTCasbinConfig
     c.Enforcer = e
     c.DataSource = ds
 
     return JWTCasbinWithConfig(c)
 }
 
-func JWTCasbinWithConfig(config Config) echo.MiddlewareFunc {
+func JWTCasbinWithConfig(config JWTCasbinConfig) echo.MiddlewareFunc {
     if config.Skipper == nil {
-        config.Skipper = DefaultConfig.Skipper
+        config.Skipper = DefaultJWTCasbinConfig.Skipper
     }
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
@@ -49,7 +49,7 @@ func JWTCasbinWithConfig(config Config) echo.MiddlewareFunc {
     }
 }
 
-func (a *Config) GetUsername(c echo.Context) string {
+func (jcc *JWTCasbinConfig) GetUsername(c echo.Context) string {
     token := c.Request().Header.Get("Authorization")
     splitToken := strings.Split(token, "Bearer")
     if 2 != len(splitToken) {
@@ -57,9 +57,9 @@ func (a *Config) GetUsername(c echo.Context) string {
     }
     token = strings.TrimSpace(splitToken[1])
 
-    return a.DataSource.GetUsernameByToken(token)
+    return jcc.DataSource.GetUsernameByToken(token)
 }
 
-func (a *Config) CheckPermission(c echo.Context) bool {
-    return a.Enforcer.Enforce(a.GetUsername(c), c.Request().URL.Path, c.Request().Method)
+func (jcc *JWTCasbinConfig) CheckPermission(c echo.Context) bool {
+    return jcc.Enforcer.Enforce(jcc.GetUsername(c), c.Request().URL.Path, c.Request().Method)
 }
