@@ -3,7 +3,7 @@ module github.com/storezhang/echos
 go 1.12
 
 require (
-	github.com/casbin/casbin v1.9.1
+	github.com/casbin/casbin/v2 v2.1.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0

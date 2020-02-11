@@ -1,9 +1,10 @@
 package echos
 
 import (
+    `net/http`
     "strings"
 
-    "github.com/casbin/casbin"
+    "github.com/casbin/casbin/v2"
 
     "github.com/labstack/echo"
     "github.com/labstack/echo/middleware"
@@ -36,14 +37,22 @@ func JWTCasbinMiddleware(e *casbin.Enforcer, ds DataSource) echo.MiddlewareFunc 
 }
 
 func JWTCasbinWithConfig(config JWTCasbinConfig) echo.MiddlewareFunc {
-    if config.Skipper == nil {
+    if nil == config.Skipper {
         config.Skipper = DefaultJWTCasbinConfig.Skipper
     }
+
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
-            if config.Skipper(c) || config.CheckPermission(c) {
+            if config.Skipper(c) {
                 return next(c)
             }
+
+            if pass, err := config.CheckPermission(c); err == nil && pass {
+                return next(c)
+            } else if err != nil {
+                return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+            }
+
             return echo.ErrForbidden
         }
     }
@@ -60,6 +69,6 @@ func (jcc *JWTCasbinConfig) GetUsername(c echo.Context) string {
     return jcc.DataSource.GetUsernameByToken(token)
 }
 
-func (jcc *JWTCasbinConfig) CheckPermission(c echo.Context) bool {
+func (jcc *JWTCasbinConfig) CheckPermission(c echo.Context) (bool, error) {
     return jcc.Enforcer.Enforce(jcc.GetUsername(c), c.Request().URL.Path, c.Request().Method)
 }
