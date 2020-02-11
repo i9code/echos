@@ -26,14 +26,17 @@ var (
     }
 )
 
-type EchoConfig struct {
-    Ip           string
-    Port         int
-    Validate     bool
-    ErrorHandler bool
-    Init         func(e *echo.Echo)
-    Routes       []func(e *echo.Echo)
-}
+type (
+    EchoFunc   func(e *echo.Echo)
+    EchoConfig struct {
+        Ip           string
+        Port         int
+        Validate     bool
+        ErrorHandler bool
+        Init         EchoFunc
+        Routes       []EchoFunc
+    }
+)
 
 func (ec *EchoConfig) Address() string {
     var address string
