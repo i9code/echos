@@ -1,4 +1,4 @@
-module github.com/storezhang/echo
+module github.com/storezhang/echos
 
 go 1.12
 
