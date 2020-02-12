@@ -55,7 +55,7 @@ type (
         // 非必须 默认值是"Bearer".
         AuthScheme string
 
-        KeyFunc jwt.Keyfunc
+        keyFunc jwt.Keyfunc
     }
 
     // JWTSuccessHandler 成功后的处理
@@ -70,11 +70,11 @@ type (
 func (j *JWTConfig) Parse(t string) (claims jwt.Claims, header map[string]interface{}, err error) {
     token := new(jwt.Token)
     if _, ok := j.Claims.(jwt.MapClaims); ok {
-        token, err = jwt.Parse(t, j.KeyFunc)
+        token, err = jwt.Parse(t, j.keyFunc)
     } else {
         elem := reflect.ValueOf(j.Claims).Type().Elem()
         claims := reflect.New(elem).Interface().(jwt.Claims)
-        token, err = jwt.ParseWithClaims(t, claims, j.KeyFunc)
+        token, err = jwt.ParseWithClaims(t, claims, j.keyFunc)
     }
     if err == nil && token.Valid {
         claims = token.Claims
@@ -85,9 +85,9 @@ func (j *JWTConfig) Parse(t string) (claims jwt.Claims, header map[string]interf
 }
 
 func (j *JWTConfig) Token(claims jwt.Claims) (string, error) {
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    token := jwt.NewWithClaims(jwt.GetSigningMethod(j.SigningMethod), claims)
 
-    return token.SignedString(j.KeyFunc)
+    return token.SignedString([]byte(j.SigningKey.(string)))
 }
 
 const (
@@ -140,7 +140,7 @@ func JWTWithConfig(config JWTConfig) echo.MiddlewareFunc {
     if config.AuthScheme == "" {
         config.AuthScheme = DefaultJWTConfig.AuthScheme
     }
-    config.KeyFunc = func(t *jwt.Token) (interface{}, error) {
+    config.keyFunc = func(t *jwt.Token) (interface{}, error) {
         if t.Method.Alg() != config.SigningMethod {
             return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
         }
@@ -176,11 +176,11 @@ func JWTWithConfig(config JWTConfig) echo.MiddlewareFunc {
             token := new(jwt.Token)
             // Issue #647, #656
             if _, ok := config.Claims.(jwt.MapClaims); ok {
-                token, err = jwt.Parse(auth, config.KeyFunc)
+                token, err = jwt.Parse(auth, config.keyFunc)
             } else {
                 t := reflect.ValueOf(config.Claims).Type().Elem()
                 claims := reflect.New(t).Interface().(jwt.Claims)
-                token, err = jwt.ParseWithClaims(auth, claims, config.KeyFunc)
+                token, err = jwt.ParseWithClaims(auth, claims, config.keyFunc)
             }
             if err == nil && token.Valid {
                 c.Set(config.ContextKey, token)
